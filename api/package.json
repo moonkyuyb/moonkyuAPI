@@ -1,0 +1,26 @@
+{
+  "name": "myapp",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nodemon --watch ../ ./bin/www",
+    "start:backup": "node ./bin/www",
+    "start:dev": "nodemon --watch ../ ./bin/www"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "device": "^0.3.12",
+    "dotenv": "^8.2.0",
+    "express": "~4.16.1",
+    "express-useragent": "^1.0.15",
+    "http-errors": "~1.6.3",
+    "jade": "~1.11.0",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.21",
+    "morgan": "~1.9.1",
+    "mysql": "^2.18.1",
+    "mysql2": "^2.2.5",
+    "public-ip": "^4.0.3"
+  }
+}

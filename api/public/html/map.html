@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    
+    <style type="text/css">
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+
+      /* Optional: Makes the sample page fill the window. */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+    <script>
+      let map;
+      var getType=""
+      function initMap() {
+         map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 37.56437606841911, lng: 126.98122110332228 },
+          zoom: 14,
+        });
+        var pyrmont = new google.maps.LatLng(37.56437606841911, 126.98122110332228);
+
+        console.log("type: "+getParam('type'));
+        var request = {
+            location: pyrmont,
+            radius: '20',
+            query: getParam('type')
+        };
+        var service = new google.maps.places.PlacesService(map);
+        service.textSearch(request, callback);
+
+
+      }
+      function callback(results, status) {
+        if (status == google.maps.places.PlacesServiceStatus.OK) {
+          console.log(results);
+          for (var i = 0; i < results.length; i++) {
+            var place = results[i];
+            createMarker(results[i]);
+          }
+        }
+      }
+
+      function createMarker(place) {
+        if (!place.geometry || !place.geometry.location) return;
+        const marker = new google.maps.Marker({
+          icon:"http://localhost:8000/data/images/icons/SaleDetails/icon_map_bank_b.png",
+          map,
+          position: place.geometry.location,
+        });
+        google.maps.event.addListener(marker, "click", () => {
+          infowindow.setContent(place.name || "");
+          infowindow.open(map);
+        });
+      }
+
+      function getParam(sname) {
+
+        var params = location.search.substr(location.search.indexOf("?") + 1);
+        var sval = "";
+        params = params.split("&");
+        for (var i = 0; i < params.length; i++) {
+            temp = params[i].split("=");
+            if ([temp[0]] == sname) { sval = temp[1]; }
+        }   
+        console.log(sval);
+        getType = sval
+
+        return sval;
+        //script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyB6n18ZryPT3tqHS6zX5oWaHH9W87S77B8&callback=initMap&libraries="+getType;
+        //var head= document.getElementsByTagName('head')[0];
+        //head.appendChild(script)
+
+      }
+
+
+    </script>
+  </head>
+  <body onload="javascript:getParam('type')">
+    <div id="map"></div>
+
+    <!-- Async script executes immediately and must be after any DOM elements used in callback. 
+      
+      AIzaSyB6n18ZryPT3tqHS6zX5oWaHH9W87S77B8 
+    AIzaSyBO05l24Yp48Ct9-hXzbqM2XzcEXDUpDZw
+    -->
+    <script
+      async
+      src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyB6n18ZryPT3tqHS6zX5oWaHH9W87S77B8&callback=initMap&libraries=places"
+    >
+
+    </script>
+    
+  </body>
+</html>

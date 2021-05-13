@@ -1,0 +1,28 @@
+version: '3'
+services: 
+  db:
+    image: mysql
+    restart: always
+    volumes: 
+      - './db:/var/lib/mysql'
+    environment: 
+      - MYSQL_ROOT_PASSWORD=ybn2021
+      - MYSQL_DATABASE=zipanda
+    ports: 
+      - '3306:3306'
+  api:
+    build: 
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "8000:8000"
+      - "8080:8080"
+    depends_on:
+      - db
+    # command: bash -c "service nginx restart && service php7.4-fpm restart && npm run-script start:dev && tail -f /dev/null"
+    command: bash -c "service nginx restart && service php7.4-fpm restart &&  tail -f /dev/null"
+    volumes: 
+      - './api:/workspace/docker/zipanda/api'
+      # - './backoffice:/var/www/html'
+      - './default:/etc/nginx/sites-available/default'
