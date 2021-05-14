@@ -114,103 +114,247 @@ router.post('/', (req, res, next) => {
 	const maint_range 	= body.maintenanceAmtRange;
 	const floor_range	= body.floorRange;
 
+	console.log(month_range[0]);
 
-	const priceWhere = `
-		AND (
-			/*보증금*/
-			(ts.s_deposit BETWEEN 0 AND 1000000000) OR
-			/*월세*/
-			(ts.s_monthly_rent BETWEEN  0 AND 100) OR
-			/*매매*/
-			(ts.s_trading_price BETWEEN 0 AND 1000000000)
-		)
-	`;
+	var priceWhere =``;
 
+	var depositAmt = ``;
+	var monthDepositAmt='';
+	if (deposit_range[0]<=0 && deposit_range[1]>=10000) {
+		depositAmt = ``;	
+	}else {
+		depositAmt = `(`;
+		if (deposit_range[0]>0 && deposit_range[1]>=10000) {
+			depositAmt += `
+			ts.s_deposit >= ${deposit_range[0]*100000}  `;		
+		}else {
+			depositAmt += `
+			ts.s_deposit BETWEEN ${deposit_range[0]*100000} AND ${deposit_range[1]*100000}   `;		
+		}
+		monthDepositAmt = `(${depositAmt}) AND `;;
+		depositAmt += `) OR `
+	}
+	//console.log(depositAmt);
+
+	var monthlyAmt = ``;
+	if (month_range[0]<=0 && month_range[1]>=100) {
+		monthlyAmt = ``;	
+	}else {
+		monthlyAmt = `(`;
+		if (month_range[0]>0 && month_range[1]>=100) {
+			monthlyAmt += `
+			${monthDepositAmt}
+			ts.s_monthly_rent >= ${month_range[0]*10000}  `;		
+		}else {
+			monthlyAmt += `
+			${monthDepositAmt}
+			ts.s_monthly_rent BETWEEN ${month_range[0]*1000}0 AND ${month_range[1]*10000}   `;		
+		}
+		monthlyAmt +=`) OR`;
+	}
+
+	var tradingAmt = ``;
+	if (sale_range[0]<=0 && sale_range[1]>=10000) {
+		tradingAmt = ``;	
+	}else {
+		tradingAmt = `(`
+		if (sale_range[0]>0 && sale_range[1]>=10000) {
+			tradingAmt = `
+			ts.s_trading_price >= ${sale_range[0]*10000}  `;		
+		}else {
+			tradingAmt = `
+			ts.s_trading_price BETWEEN ${sale_range[0]*10000} AND ${sale_range[1]*10000}   `;		
+		}
+		tradingAmt +=`) OR`
+	}
+
+	priceWhere = `${depositAmt}${monthlyAmt}${tradingAmt}`;
 	
-			/*거래유형 */
+	if (priceWhere != ``) {
+		priceWhere = `AND ( ${priceWhere.slice(0,-2)} ) )`;
+	}
+	//console.log(priceWhere);
 
-	const priceTypeWhere = ``;
+
+	var priceTypeWhere=``;
+	if (s_price_type.length > 0) {
+		var inner=``;
+		s_price_type.forEach((el, index) =>{
+			inner +=`'${el}' ${index< (s_price_type.length-1) ? ',':'' } `;
+		})
+		priceTypeWhere = `AND (ts.s_price_type IN (${inner}) )`;
+	}
+	
+	/*ㅁㅐ물유형 */
+	var saleTypeWhere = ``;
 	if (s_sale_type.length > 0) {
 	 	var str = "";
 		s_sale_type.forEach(element => {
 			str += "'"+element+"',";
 		});
 		str = str.slice(0,-1);
-		`
-			AND ( ts.s_price_type IN (${str}) )
-			`
+		saleTypeWhere = `
+			AND ( ts.s_sale_type IN (${str}) )
+			`;
 	}
 
-			
+	
+	/*면적 */
+	const areaWhere =``;
+	
+	if (area_range.length > 0) {
+		if (area_range[0]>0 && area_range[1]<20) {
+			areaWhere =  `
+				AND ( ts.s_use_area_p BETWEEN ${area_range[0]} AND ${area_range[1]})
+				`;
+		}
+	}
 	
 
-			/*면적 */
-	const areaWhere = `AND ( ts.s_use_area_p BETWEEN 50 AND 140)
-			`
+	/*층수 */
+	const floorWhere = ``;
+	
+	if (floor_range.length > 0) {
+		if (floor_range[0] >0 && floor_range[1] <14) {
+			floorWhere = `
+				AND ( ts.s_floor BETWEEN ${floor_range[0]} AND  ${floor_range[1]}  )
+				`;
+		}
+	}
+	
+	/*방 개수  */
+	var roomCntWhere = ``;
+	
+	if (room_cnt.length > 0) {
 
-			/*층수 */
-	const floorWhere = `AND ( ts.s_floor BETWEEN 1 AND 30 )
-			`
+		roomCntWhere = `AND (`;
+
+		
+		room_cnt.forEach((el, index)=>{
+
+			roomCntWhere += `
+			(ts.s_rooms_cnt ${el<4?"=":">="} ${el}) ${ index < (room_cnt.length-1) ? "OR":"" }
+			`;
 			
-			/*방 개수  */
-	const roomCntWhere = `AND ( 
-					(ts.s_rooms_cnt = 1) OR
-					(ts.s_rooms_cnt = 2) OR 
-					(ts.s_rooms_cnt = 3) OR 
-					(ts.s_rooms_cnt >= 4) 
-				)
-			`
+		})
+		roomCntWhere += `)`;
+	
+	}
+	
+	/*욕실 개수  */
+	var bathRoomWhere =``;
+	
+	if (bath_cnt.length > 0) {
+		
+		bathRoomWhere = `AND (`;
+		bath_cnt.forEach((el, index)=>{
 
-			/*욕실 개수  */
-	const bathRoomWhere = `AND ( 
-					(ts.s_bathrooms_cnt = 1) OR
-					(ts.s_bathrooms_cnt = 2) OR 
-					(ts.s_bathrooms_cnt = 3) OR 
-					(ts.s_bathrooms_cnt >= 4)  
-				)
-			`
+			bathRoomWhere += `
+			(ts.s_bathrooms_cnt ${el<4?"=":">="} ${el}) ${ index < (bath_cnt.length-1) ? "OR":"" }
+			`;
+			
+		})
+		bathRoomWhere += `)`;
+	}
+	
 
-			/*준공 연차 */
-	const builtYearWhere = `AND (
-					( ts.s_build_year BETWEEN (2021-1) AND 2021 ) OR
-					( ts.s_build_year BETWEEN (2021-5) AND 2021 ) OR
-					( ts.s_build_year BETWEEN (2021-10) AND 2021 ) OR
-					( ts.s_build_year BETWEEN (2021-15) AND 2021 ) OR
-					( ts.s_build_year < (2021-15) )
-				)
-			`
-			/*관리비  */
-	const costAmtWhere = `AND (
-					ts.s_admin_cost_amt BETWEEN 0 AND 2000000
-			)
-			`
-			/*주차*/
-	const parkingWhere = `AND (
-					( ts.s_parking = 1 ) OR 
-					( ts.s_parking >=1 ) OR 
-					( ts.s_parking >=2 ) 
-			)
-			`
+	/*준공 연차 */
+	var builtYearWhere = ``;
+	var currentDate = new Date();
+	
+	if (built_year.length > 0) {
+		
+		builtYearWhere = `AND (`;
+		built_year.forEach((el, index)=>{
+			if (el < 16) {
+				builtYearWhere += `
+				( ts.s_build_year BETWEEN (${currentDate.getFullYear()}-${el}) AND ${currentDate.getFullYear()} ) ${ index < (built_year.length-1) ? "OR":"" }
+				`;
+			}else {
+				builtYearWhere += `
+				( ts.s_build_year < (${currentDate.getFullYear()}-15)  ) ${ index < (built_year.length-1) ? "OR":"" }
+				`;
+			}
+		})
 
-			/*유형*/
-	const saleTypeWhere = `AND (
-				ts.s_sale_type IN ('SaleType_10', 'SaleType_16', 'SaleType_4' )
+		builtYearWhere += `)`;
+
+	}
+	
+	
+	/*관리비  */
+	var costAmtWhere = ``;
+	
+	if (maint_range[0] <=0 && maint_range[1] >= 32) {
+		costAmtWhere = ``;
+	}else {
+		costAmtWhere = `
+			AND (
+				ts.s_admin_cost_amt BETWEEN ${maint_range[0]} AND ${maint_range[1]}
 			)
-			`
+		`;
+	}
+
+	/*주차*/
+	var parkingWhere = ``;
+	if (parking_cnt.length > 0) {
+		parkingWhere = `AND (`;
+		parking_cnt.forEach((el, index)=>{
+			parkingWhere += `
+			(ts.s_parking ${el<2?">":">="} ${el-1}) ${ index < (parking_cnt.length-1) ? "OR":"" }
+			`;
+		})
+		parkingWhere += `)`;
+	}
 
 			/*옵션*/
-	const optionWhere = `AND (
-				rtso.code IN ( 'CeilAircon', 'WallAircon', 'Closet', 'Refgrt',  'CardKey', 'CCTV', 'EntSecurity', 'FireExginguisher', 'Pet')
-			)`
+	var optionWhere = ``;
+	
+	var optionInner = "";
 
-			/*태그*/
-	const tagWhere = `AND (
-				rtst.st_id IN (
-				  3,   1,   2, 208, 216,
-					203, 221, 226, 242, 209,
-					212, 234, 204
-				)
-			)`
+	if (living_opt.length > 0) {
+		living_opt.forEach((el, index) => {
+			optionInner += `'${el}' ${index<(living_opt.length-1)?',':''}`;
+	   	});	
+   	}
+
+	if (heating_opt.length > 0) {
+		heating_opt.forEach((el, index) => {
+			optionInner += `'${el}' ${index<(heating_opt.length-1)?',':''}`;
+	   	});	
+   	}
+
+	if (security_opt.length > 0) {
+		security_opt.forEach((el, index) => {
+			optionInner += `'${el}' ${index<(security_opt.length-1)?',':''}`;
+	   	});	
+   	}
+
+	if (etc_opt.length > 0) {
+		etc_opt.forEach((el, index) => {
+			optionInner += `'${el}' ${index<(etc_opt.length-1)?',':''}`;
+	   	});	
+   	}
+	if (optionInner != ''){
+   		optionWhere += `
+   			AND ( rtso.code IN (${optionInner}) )
+   			`;
+	}
+
+	/*태그*/
+	var tagWhere = ``;
+	
+	if (tags_st_ids.length > 0) {
+		var tagInner = ``;
+		tags_st_ids.forEach((el, index) => {
+			tagInner += `'${el}' ${index<(tags_st_ids.length-1)?',':''}`;
+	   	});	
+		tagWhere = `
+			AND (
+				rtst.st_id IN (${tagInner})
+			)`;
+	}
+	
 
 	
 	var queryString = `
@@ -351,6 +495,7 @@ router.post('/', (req, res, next) => {
 	`;
 
 
+	console.log(queryString);
 
 
 	conn.query(queryString, (err,results,fields)=>{
@@ -435,7 +580,8 @@ router.get('/:s_id', (req, res, next) => {
 		ON concat(sales.sl_location1,sales.sl_location2) =  ts2.code
 		LEFT JOIN tbl_sigungu ts3
 		ON concat(sales.sl_location1,sales.sl_location2,sales.sl_location3) = ts3.code
-	`
+	`;
+	
 
 	conn.query(queryString, (err,results,fields)=>{
 		if(err){
