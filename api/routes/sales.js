@@ -1,5 +1,6 @@
 const express = require('express');
 const mysql = require('mysql2');
+const {beforeLogin, afterLogin, verifyToken} = require('./middlewares');
 
 const router = express.Router();
 
@@ -33,7 +34,8 @@ router.get('/', (req, res, next) => {
 				tsf.sf_original_nm,
 				tags.st_title,
 
-				tsl.sl_building_name, tsl.sl_location1, tsl.sl_location2, tsl.sl_location3, tsl.sl_location4
+
+				tsl.sl_building_name, tsl.sl_location1, tsl.sl_location2, tsl.sl_location3, tsl.sl_location4, tsl.sl_lat, tsl.sl_lng
 			FROM zipanda.tbl_sales ts
 			
 			LEFT JOIN tbl_code tc
@@ -379,7 +381,7 @@ router.post('/', (req, res, next) => {
 						tsf.sf_original_nm,
 						tags.st_title,
 		
-						tsl.sl_building_name, tsl.sl_location1, tsl.sl_location2, tsl.sl_location3, tsl.sl_location4
+						tsl.sl_building_name, tsl.sl_location1, tsl.sl_location2, tsl.sl_location3, tsl.sl_location4, tsl.sl_lat, tsl.sl_lng
 			
 			FROM tbl_sales ts 
 			
@@ -1058,7 +1060,178 @@ router.delete('/like', (req, res, next) => {
 	
 });
 
+router.post('/filter',afterLogin, (req,res, next)=>{
 
+	console.log(req.body);
+	
+	const params = req.body;
+
+	if (params.token == "") {
+		return res.status(404).json({message:'로그인 후 이용할 수 있습니다.'})
+	}
+
+
+	var priceListSelected 		= params.priceListSelected 	; 
+	var saleTypeSelected		= params.saleTypeSelected	;
+	var livingItemSelected		= params.livingItemSelected	;	
+	var heatingItemSelected		= params.heatingItemSelected	;	
+	var securityItemSelected	= params.securityItemSelected;	
+	var etcItemSelected			= params.etcItemSelected		;	
+	var tagsItemSelected		= params.tagsItemSelected	;	
+
+	var roomCnt					= params.roomCnt				;		
+	var bathCnt					= params.bathCnt				;	
+	var builtYear				= params.builtYear			;	
+	var parkingCnt				= params.parkingCnt			;	
+	
+	var depositAmtRange			= params.depositAmtRange		;		
+	var monthAmtRange			= params.monthAmtRange		;		
+	var saleAmtRange			= params.saleAmtRange		;		
+	var areaSizeRange			= params.areaSizeRange		;		
+	var maintenanceAmtRange		= params.maintenanceAmtRange	;		
+	var floorRange				= params.floorRange			;	
+
+	var mID 					= params.mID;
+				
+	
+	const conn = mysql.createConnection({
+		host     : process.env.DB_HOST,
+		user     : process.env.DB_USER,
+		password : process.env.DB_PWD,
+		database : process.env.DB_DATABASE,
+	});
+
+	conn.connect()
+
+	const query =`INSERT INTO tbl_sales_filter 
+					SET 
+						f_deposit_min = ${depositAmtRange[0]},
+						f_deposit_max = ${depositAmtRange[1]},
+
+						f_monthly_rent_min = ${monthAmtRange[0]},
+						f_monthly_rent_max = ${monthAmtRange[1]},
+
+						f_trading_price_min = ${saleAmtRange[0]},
+						f_trading_price_max = ${saleAmtRange[1]},
+
+						f_supply_area_min = ${areaSizeRange[0]},
+						f_supply_area_max = ${areaSizeRange[1]},
+
+						f_mantanence_min = ${maintenanceAmtRange[0]},
+						f_mantanence_max = ${maintenanceAmtRange[1]},
+
+						f_total_floor_min = ${floorRange[0]},
+						f_total_floor_max = ${floorRange[1]},
+
+						m_id				= ${mID},
+						reg_date			= now()
+	`;
+
+	conn.query(query, (err,results,fields)=>{
+			if(err){
+				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
+			}
+			else {
+				if (results.length <= 0) {
+
+					return res.status(404).json({message:'데이터가 없습니다.'})
+				}else {
+				
+					var f_id = results.insertId;
+
+					const optQuery = `
+						INSERT INTO tbl_sales_filter_options(f_id, f_option, division)
+							VALUES
+					`;
+
+					var insertValues = "";
+					if (priceListSelected.length > 0){
+						priceListSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'contract' )`;
+						});
+					}
+					if (saleTypeSelected.length > 0	){
+						saleTypeSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'sale_type' )`;
+						});
+					}
+					if (livingItemSelected.length > 0)	{
+						livingItemSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'living' )`;
+						});
+					}
+					if (heatingItemSelected.length > 0)	{
+						heatingItemSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'heating' )`;
+						});
+					}
+					if (securityItemSelected.length > 0) {
+						securityItemSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'security' )`;
+						});
+					}
+					if (etcItemSelected.length > 0) {
+						etcItemSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'etc' )`;
+						});
+					}
+					if (tagsItemSelected.length > 0) {
+						tagsItemSelected.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'tag' )`;
+						});
+					}	
+					if (roomCnt.length > 0) {
+						roomCnt.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'room_cnt' )`;
+						});
+					}	
+					if (bathCnt.length > 0) {
+						bathCnt.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'bath_cnt' )`;
+						});
+					}				
+					if (builtYear.length > 0) {
+						builtYear.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'built_year' )`;
+						});
+					}							
+					if (parkingCnt.length > 0) {
+						parkingCnt.forEach(el => {
+							insertValues += `(${f_id}, ${el}, 'parking_cnt' )`;
+						});
+					}									
+					
+					optQuery += insertValues;
+					conn.query(optQuery, (err,results,fields)=>{
+						if(err){
+							return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
+						}
+						else {
+							if (results.length <= 0) {
+
+								return res.status(404).json({message:'데이터가 없습니다.'})
+							}else {
+							
+								return res.status(200).json({data: results, msg: 'success'})
+							
+							}
+						
+						}
+					})
+					
+
+
+
+
+				}
+					
+			}
+	})	
+	
+
+
+
+})
 
 
 
@@ -1092,6 +1265,8 @@ router.delete('/:s_id', (req, res, next) => {
 	conn.end()
 
 });
+
+
 
 router.post('/', (req, res, next) => {
 
