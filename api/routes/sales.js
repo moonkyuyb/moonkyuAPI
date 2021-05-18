@@ -98,6 +98,22 @@ router.post('/', (req, res, next) => {
 	});
 	conn.connect()
 
+	const leftTop 		= body.leftTop;
+	const rightTop 		= body.rightTop;
+	const rightBottom 	= body.rightBottom;
+	const leftBottom 	= body.leftBottom;
+
+	console.log(leftTop);
+	console.log(rightTop);
+	console.log(rightBottom);
+	console.log(leftBottom);
+
+	const lng1  			= leftTop['longitude'];
+	const lng2 			= rightBottom['longitude'];
+	const lat1  			= leftTop['latitude'];
+	const lat2 			= rightBottom['latitude'];
+
+
 	const s_price_type 	= body.priceListSelected;
 	const s_sale_type  	= body.saleTypeSelected;
 	const living_opt   	= body.livingItemSelected;
@@ -116,66 +132,73 @@ router.post('/', (req, res, next) => {
 	const maint_range 	= body.maintenanceAmtRange;
 	const floor_range	= body.floorRange;
 
-	console.log(month_range[0]);
 
 	var priceWhere =``;
 
 	var depositAmt = ``;
 	var monthDepositAmt='';
-	if (deposit_range[0]<=0 && deposit_range[1]>=10000) {
-		depositAmt = ``;	
-	}else {
-		depositAmt = `(`;
-		if (deposit_range[0]>0 && deposit_range[1]>=10000) {
-			depositAmt += `
-			ts.s_deposit >= ${deposit_range[0]*100000}  `;		
+	if (s_price_type.indexOf('lease') >=0 || s_price_type.indexOf('monthly') >=0 || s_price_type.indexOf('short') >=0 ) {
+		if (deposit_range[0]<=0 && deposit_range[1]>=10000) {
+			depositAmt = ``;	
 		}else {
-			depositAmt += `
-			ts.s_deposit BETWEEN ${deposit_range[0]*100000} AND ${deposit_range[1]*100000}   `;		
+			depositAmt = `(`;
+			if (deposit_range[0]>0 && deposit_range[1]>=10000) {
+				depositAmt += `
+				ts.s_deposit >= ${deposit_range[0]*100000}  `;		
+			}else {
+				depositAmt += `
+				ts.s_deposit BETWEEN ${deposit_range[0]*100000} AND ${deposit_range[1]*100000}   `;		
+			}
+			monthDepositAmt = `(${depositAmt}) AND `;;
+			depositAmt += `) OR `
 		}
-		monthDepositAmt = `(${depositAmt}) AND `;;
-		depositAmt += `) OR `
 	}
 	//console.log(depositAmt);
 
 	var monthlyAmt = ``;
-	if (month_range[0]<=0 && month_range[1]>=100) {
-		monthlyAmt = ``;	
-	}else {
-		monthlyAmt = `(`;
-		if (month_range[0]>0 && month_range[1]>=100) {
-			monthlyAmt += `
-			${monthDepositAmt}
-			ts.s_monthly_rent >= ${month_range[0]*10000}  `;		
+	if (s_price_type.indexOf('monthly') >=0 || s_price_type.indexOf('short') >=0 ) {
+
+		if (month_range[0]<=0 && month_range[1]>=100) {
+			monthlyAmt = ``;	
 		}else {
-			monthlyAmt += `
-			${monthDepositAmt}
-			ts.s_monthly_rent BETWEEN ${month_range[0]*1000}0 AND ${month_range[1]*10000}   `;		
+			monthlyAmt = `(`;
+			if (month_range[0]>0 && month_range[1]>=100) {
+				monthlyAmt += `
+				${monthDepositAmt}
+				ts.s_monthly_rent >= ${month_range[0]*10000}  `;		
+			}else {
+				monthlyAmt += `
+				${monthDepositAmt}
+				ts.s_monthly_rent BETWEEN ${month_range[0]*1000}0 AND ${month_range[1]*10000}   `;		
+			}
+			monthlyAmt +=`) OR`;
 		}
-		monthlyAmt +=`) OR`;
 	}
 
 	var tradingAmt = ``;
-	if (sale_range[0]<=0 && sale_range[1]>=10000) {
-		tradingAmt = ``;	
-	}else {
-		tradingAmt = `(`
-		if (sale_range[0]>0 && sale_range[1]>=10000) {
-			tradingAmt = `
-			ts.s_trading_price >= ${sale_range[0]*10000}  `;		
+	if (s_price_type.indexOf('sales') >=0 ) {
+		if (sale_range[0]<=0 && sale_range[1]>=10000) {
+			tradingAmt = ``;
 		}else {
-			tradingAmt = `
-			ts.s_trading_price BETWEEN ${sale_range[0]*10000} AND ${sale_range[1]*10000}   `;		
+			tradingAmt = `(`
+			if (sale_range[0]>0 && sale_range[1]>=10000) {
+				tradingAmt = `
+				ts.s_trading_price >= ${sale_range[0]*10000}  `;
+			}else {
+				tradingAmt = `
+				ts.s_trading_price BETWEEN ${sale_range[0]*10000} AND ${sale_range[1]*10000}   `;
+			}
+			tradingAmt +=`) OR`
 		}
-		tradingAmt +=`) OR`
 	}
 
 	priceWhere = `${depositAmt}${monthlyAmt}${tradingAmt}`;
+	//console.log(priceWhere);
+	//console.log(priceWhere.slice(0,-3));
 	
 	if (priceWhere != ``) {
-		priceWhere = `AND ( ${priceWhere.slice(0,-2)} ) )`;
+		priceWhere = `AND ( ${priceWhere.slice(0,-3)} ${priceWhere.slice(0,-3).includes("OR")? ")":"" } )`;
 	}
-	//console.log(priceWhere);
 
 
 	var priceTypeWhere=``;
@@ -411,10 +434,7 @@ router.post('/', (req, res, next) => {
 				ON tsf.s_id=ts.s_id
 		
 			LEFT JOIN zipanda.tbl_sales_location tsl
-				ON ts.s_id = tsl.s_id
-		
-				
-		
+				ON ts.s_id = tsl.s_id 
 			
 			WHERE  ts.status =1
 			
@@ -490,15 +510,11 @@ router.post('/', (req, res, next) => {
 		LEFT JOIN tbl_sigungu tsi3
 			ON concat(sl_location1,sl_location2,sl_location3) = tsi3.code
 					
-		
-		
-		WHERE sales.sales_s_id = opts.opt_s_id AND sales.sales_s_id=tags.tag_s_id AND opts.opt_s_id=tags.tag_s_id;
+		WHERE sales.sales_s_id = opts.opt_s_id AND sales.sales_s_id=tags.tag_s_id AND opts.opt_s_id=tags.tag_s_id AND  ( (sales.sl_lat BETWEEN ${lat1} AND ${lat2}) AND (sales.sl_lng BETWEEN ${lng2} AND ${lng1})   ) ;
 					
 	`;
 
-
 	console.log(queryString);
-
 
 	conn.query(queryString, (err,results,fields)=>{
 		return res.status(200).json({results: results, msg: 'success'})
