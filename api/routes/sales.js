@@ -557,7 +557,7 @@ router.get('/:s_id', (req, res, next) => {
 
 					opt.optCode,
 			
-					tsl.sl_building_name, tsl.sl_location1, tsl.sl_location2, tsl.sl_location3, tsl.sl_location4
+					tsl.sl_building_name, tsl.sl_location1, tsl.sl_location2, tsl.sl_location3, tsl.sl_location4, tsl.sl_lat, tsl.sl_lng
 				FROM zipanda.tbl_sales ts
 				LEFT JOIN tbl_code tc
 				ON ts.s_building_type = tc.code
@@ -608,6 +608,7 @@ router.get('/:s_id', (req, res, next) => {
 		if (results.length !== 1) {
 			return res.status(404).json({msg:'Unknown item'})
 		}
+		console.log(results)
 		return res.status(200).json({results: results, msg: 'success'})
 	})
 	conn.end()
@@ -691,6 +692,9 @@ router.get('/detail/:s_id', (req, res, next) => {
 
 	(SELECT sl_address1 FROM tbl_sales_location WHERE s_id=sales.s_id) AS address1,
 	(SELECT sl_address2 FROM tbl_sales_location WHERE s_id=sales.s_id) AS address2,
+
+	(SELECT sl_lat FROM tbl_sales_location WHERE s_id=sales.s_id) AS sl_lat,
+	(SELECT sl_lng FROM tbl_sales_location WHERE s_id=sales.s_id) AS sl_lng,
 
 	app.*,
 	app_detail.*,

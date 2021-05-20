@@ -16,6 +16,7 @@ const codesRouter	= require('./routes/codes');
 const addressRouter = require('./routes/address');
 const fileUploadRouter = require('./routes/fileUpload');
 
+
 ///////added////////////
 const tagsRouter    = require('./routes/tags');
 
@@ -33,7 +34,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/data', express.static(path.join(__dirname, 'public')));
-app.use('/map', express.static(path.join(__dirname, 'public/html')));
+app.use('/map', express.static(path.join(__dirname, 'public/html/map')));
 
 app.use('/',		indexRouter);
 app.use('/test', 	testRouter);
