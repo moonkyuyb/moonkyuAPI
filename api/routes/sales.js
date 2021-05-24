@@ -1,8 +1,31 @@
 const express = require('express');
+var bodyParser = require("body-parser");
+var fs = require("fs");
+
+var app = express();
+app.use(bodyParser.json( { type: 'application/*+json' } ));
+app.use(bodyParser.urlencoded({
+	extended: true
+}));
+app.use(express.json());
+
+
+var parser = bodyParser.urlencoded({extended:false});
+
 const mysql = require('mysql2');
 const {beforeLogin, afterLogin, verifyToken} = require('./middlewares');
 
 const router = express.Router();
+
+
+
+
+router.post('/add', parser, (req, res, next) => {
+	console.log(req);
+	
+
+	return res.status(200).json({msg:'success'})
+})
 
 router.get('/', (req, res, next) => {
 	const conn = mysql.createConnection({
@@ -1311,5 +1334,7 @@ router.post('/', (req, res, next) => {
 
 	return res.status(200).json({msg:'success'})
 });
+
+
 
 module.exports = router;
