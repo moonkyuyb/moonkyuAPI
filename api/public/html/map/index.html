@@ -27,52 +27,103 @@
 
       function initMap() {
         center = { lat: parseFloat( getParam('lat') ) , lng: parseFloat( getParam('lng') ) }
+        requestCCTV(getParam('lat'),getParam('lng') );
+
         map = new google.maps.Map(document.getElementById("map"), {
           center: center,
           zoomControl:false,
           scaleControl:false,
           mapTypeControl: false,
           streetViewControl: false,
-          rotateControl: boolean,
+          rotateControl: false,
           zoom: 14,
         });
 
+        // 매물 위치 
         var marker = new google.maps.Marker({
           position: center,
-          icon:"http://localhost:8000/data/images/icons/icon-map-point.png",
+          icon:"http://192.168.0.55:8000/data/images/icons/icon-map-point.png",
         });
         marker.setMap(map);
-        var pyrmont = new google.maps.LatLng(center.lat, center.lng);
-
-        var request = {
-            location: pyrmont,
-            radius: '20',
-            type: [getParam('type')]
-          };
-        var service = new google.maps.places.PlacesService(map);
-        service.textSearch(request, callback);
+        if (getParam('type') != "") {
+          var pyrmont = new google.maps.LatLng(center.lat, center.lng);
+          var request = {
+              location: pyrmont,
+              radius: '20',
+              type: [getParam('type')]
+            };
+          
+          //주변 정보
+          var service = new google.maps.places.PlacesService(map);
+          service.textSearch(request, callback);
+        }
       }
       function callback(results, status) {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
-
+          
           for (var i = 0; i < results.length; i++) {
             var place = results[i];
-            console.log(place);
             createMarker(results[i]);
           }
         }
       }
 
+      function requestCCTV (lat, lng) {
+        var xmlHttp = new XMLHttpRequest()
+
+        xmlHttp.onreadystatechange = function () {
+          if (this.status == 200 && this.readyState == this.DONE) {
+            console.log(xmlHttp.responseText)
+          }
+        }
+
+        xmlHttp.open('GET', 'http://api.data.go.kr/openapi/tn_pubr_public_cctv_api', true)
+        xmlHttp.send()
+
+
+      }
+
       function createMarker(place) {
 
         var markerIcon = "";
-        if ( place.types.indexOf() >=0 ) {
-            
+        if ( place.types.indexOf("subway_station") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-subway.png";
+        }
+        else if ( place.types.indexOf("convenience_store") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-convenience.png";
+        }
+        else if ( place.types.indexOf("cafe") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-cafee.png";
+        }
+        else if ( place.types.indexOf("bank") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-bank.png";
+        }
+        else if ( place.types.indexOf("local_government_office") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-office.png";
+        }
+        else if ( place.types.indexOf("police") >=0 ||  place.types.indexOf("political") >=0  ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-police.png";
+        }
+        else if ( place.types.indexOf("cctv") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-cctv.png";
+        }
+        else if ( place.types.indexOf("primary_school") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-kindergarden.png";
+        }
+        else if ( place.types.indexOf("secondary_school") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-elementry.png";
+        }
+        else if ( place.types.indexOf("secondary_school") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-middle.png";
+        }
+        else if ( place.types.indexOf("school") >=0 ) {
+            markerIcon = "http://192.168.0.55:8000/data/images/icons/icon-map-location-high.png";
         }
 
         if (!place.geometry || !place.geometry.location) return;
+
         const marker = new google.maps.Marker({
-          icon:"http://localhost:8000/data/images/icons/icon-map-location-coffee.png",
+          icon: markerIcon,
           map,
           position: place.geometry.location,
         });
@@ -106,12 +157,13 @@
     </script>
   </head>
   <body >
+    
     <div id="map"></div>
 
     <!-- Async script executes immediately and must be after any DOM elements used in callback. 
       
       AIzaSyD-gcf8xBGzSxHLE7W9u01zjaemH1GeqyI dev계정
-    AIzaSyBO05l24Yp48Ct9-hXzbqM2XzcEXDUpDZw
+      AIzaSyBO05l24Yp48Ct9-hXzbqM2XzcEXDUpDZw
     -->
     <script
       async

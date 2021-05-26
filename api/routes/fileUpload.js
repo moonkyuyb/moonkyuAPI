@@ -6,7 +6,6 @@ var fs = require("fs");
 const express = require('express');
 var app = express();
 
-
 var parser = bodyParser.urlencoded({extended:false});
 
 app.use(bodyParser.json( { type: 'application/*+json' } ));
@@ -24,9 +23,9 @@ const router = express.Router();
 
 router.post('/', parser,  (req, res, next) => {
     //var mId = req.body.params.mId;
-    
+    console.log(req);
     let fileNames = new Array();
-    //console.log(req.body.formData._parts[0]);
+    /*
     if (req.body.formData._parts != undefined) {
     
         req.body.formData._parts.map((el) => {
@@ -34,14 +33,15 @@ router.post('/', parser,  (req, res, next) => {
         })
     
     }
+    */
 
     return res.status(200).json({fileNames: (fileNames) , msg: 'success'})
 
 });
 function saveImage(baseImage) {
     //const uploadPath = "/Users/munkyuhwan/WorkSpace/api/zipanda/api";
-    //const uploadPath = "/Users/munkyuhwan/WorkSpace/api/zipanda/api/";
-    const uploadPath = "/workspace/docker/zipanda/api/public/";
+    const uploadPath = "/Users/munkyuhwan/WorkSpace/api/zipanda_auth/api/public";
+    //const uploadPath = "/workspace/docker/zipanda/api/public/";
     //path of folder where you want to save the image.
     const localPath = `${uploadPath}/images/sales/${baseImage.mId}/`;
 

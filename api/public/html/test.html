@@ -1,0 +1,62 @@
+<html>
+<head>
+<title></title>
+<style>
+    .cl1 { border:1px solid red;padding:1px;width:100px;margin:10px;float:left; }
+</style>
+<script type = "text/javaScript">
+var longishstring = 'aaaaaaa aaaaaaaa a 
+a aaaaaaaa aaaaaaa a aaaaaaaaa aaaaaaaa aaaaaaaaa ' +
+    'aaaaaccccc cccccccc ccccccc cccccc cccccf ffff ffffff ff
+    ffff ffffff fffffff fffffflll ' +
+    'lllllll lllllll lllllll llrrrrrr rrrrr rrr rrrrrrrrrrrr rrrrrrraaaaaaa aaaaaaaa a 
+a aaaaaaaa aaaaaaa a aaaaaaaaa aaaaaaaa aaaaaaaaa ' +
+    'aaaaaccccc cccccccc ccccccc cccccc cccccf ffff ffffff ff
+    ffff ffffff fffffff fffffflll ' +
+    'lllllll lllllll lllllll llrrrrrr rrrrr rrr rrrrrrrrrrrr rrrrrrraaaaaaa aaaaaaaa a 
+a aaaaaaaa aaaaaaa a aaaaaaaaa aaaaaaaa aaaaaaaaa ' +
+    'aaaaaccccc cccccccc ccccccc cccccc cccccf ffff ffffff ff
+    ffff ffffff fffffff fffffflll ' +
+    'lllllll lllllll lllllll llrrrrrr rrrrr rrr rrrrrrrrrrrr rrrrrrraaaaaaa aaaaaaaa a 
+a aaaaaaaa aaaaaaa a aaaaaaaaa aaaaaaaa aaaaaaaaa ' +
+    'aaaaaccccc cccccccc ccccccc cccccc cccccf ffff ffffff ff
+    ffff ffffff fffffff fffffflll ' +
+    'lllllll lllllll lllllll llrrrrrr rrrrr rrr rrrrrrrrrrrr rrrrrrraaaaaaa aaaaaaaa a 
+a aaaaaaaa aaaaaaa a aaaaaaaaa aaaaaaaa aaaaaaaaa ' +
+    'aaaaaccccc cccccccc ccccccc cccccc cccccf ffff ffffff ff
+    ffff ffffff fffffff fffffflll ' +
+    'lllllll lllllll lllllll llrrrrrr rrrrr rrr rrrrrrrrrrrr rrrrrrraaaaaaa aaaaaaaa a 
+a aaaaaaaa aaaaaaa a aaaaaaaaa aaaaaaaa aaaaaaaaa ' +
+    'aaaaaccccc cccccccc ccccccc cccccc cccccf ffff ffffff ff
+    ffff ffffff fffffff fffffflll ' +
+    'lllllll lllllll lllllll llrrrrrr rrrrr rrr rrrrrrrrrrrr rrrrrrr'
+function go()
+{
+    var elem = createElem();
+    var arr = longishstring.split(' ');
+    for (var i = 0; i < arr.length; i++)
+    {
+        elem.innerHTML += (arr[i] + ' ');
+        if (elem.scrollHeight > 100)
+            elem = createElem();             
+
+    }        
+
+}
+
+function createElem()
+{
+    var elem = document.createElement('DIV');
+    elem.className = 'cl1';
+    document.body.appendChild(elem);
+    return elem;
+}
+</script>
+</head>
+<body onload="">
+    <div>
+
+    </div>
+
+</body>
+</html>

@@ -1,16 +1,7 @@
 const express = require('express');
-var bodyParser = require("body-parser");
-var fs = require("fs");
+var multer = require('multer'); // express에 multer모듈 적용 (for 파일업로드)
+var upload = multer({ dest: '/Users/munkyuhwan/WorkSpace/api/zipanda_auth/api/public/', limits: {fileSize: 100000000} })
 
-var app = express();
-app.use(bodyParser.json( { type: 'application/*+json' } ));
-app.use(bodyParser.urlencoded({
-	extended: true
-}));
-app.use(express.json());
-
-
-var parser = bodyParser.urlencoded({extended:false});
 
 const mysql = require('mysql2');
 const {beforeLogin, afterLogin, verifyToken} = require('./middlewares');
@@ -20,9 +11,10 @@ const router = express.Router();
 
 
 
-router.post('/add', parser, (req, res, next) => {
-	console.log(req);
-	
+router.post('/add',upload.array('userfile'),   (req, res, next) => {
+	res.setHeader('Content-Type', 'text/plain');
+	res.send('Uploaded! : '+req.file); // object를 리턴함
+  	console.log(req); //
 
 	return res.status(200).json({msg:'success'})
 })
@@ -111,7 +103,6 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 
-	console.log(req.body);
 	const body = req.body;
 	const conn = mysql.createConnection({
 		host     : process.env.DB_HOST,
@@ -126,11 +117,7 @@ router.post('/', (req, res, next) => {
 	const rightBottom 	= body.rightBottom;
 	const leftBottom 	= body.leftBottom;
 
-	console.log(leftTop);
-	console.log(rightTop);
-	console.log(rightBottom);
-	console.log(leftBottom);
-
+	
 	const lng1  			= leftTop['longitude'];
 	const lng2 			= rightBottom['longitude'];
 	const lat1  			= leftTop['latitude'];
@@ -176,7 +163,7 @@ router.post('/', (req, res, next) => {
 			depositAmt += `) OR `
 		}
 	}
-	//console.log(depositAmt);
+	////console.log(depositAmt);
 
 	var monthlyAmt = ``;
 	if (s_price_type.indexOf('monthly') >=0 || s_price_type.indexOf('short') >=0 ) {
@@ -216,8 +203,8 @@ router.post('/', (req, res, next) => {
 	}
 
 	priceWhere = `${depositAmt}${monthlyAmt}${tradingAmt}`;
-	//console.log(priceWhere);
-	//console.log(priceWhere.slice(0,-3));
+	////console.log(priceWhere);
+	////console.log(priceWhere.slice(0,-3));
 	
 	if (priceWhere != ``) {
 		priceWhere = `AND ( ${priceWhere.slice(0,-3)} ${priceWhere.slice(0,-3).includes("OR")? ")":"" } )`;
@@ -277,7 +264,6 @@ router.post('/', (req, res, next) => {
 
 		roomCntWhere = `AND (`;
 
-		
 		room_cnt.forEach((el, index)=>{
 
 			roomCntWhere += `
@@ -403,6 +389,7 @@ router.post('/', (req, res, next) => {
 			)`;
 	}
 	
+
 
 	
 	var queryString = `
@@ -533,12 +520,16 @@ router.post('/', (req, res, next) => {
 		LEFT JOIN tbl_sigungu tsi3
 			ON concat(sl_location1,sl_location2,sl_location3) = tsi3.code
 					
+		/*
 		WHERE sales.sales_s_id = opts.opt_s_id AND sales.sales_s_id=tags.tag_s_id AND opts.opt_s_id=tags.tag_s_id AND  ( (sales.sl_lat BETWEEN ${lat1} AND ${lat2}) AND (sales.sl_lng BETWEEN ${lng2} AND ${lng1})   ) ;
+		*/
+		WHERE ( sales.sales_s_id IN (opts.opt_s_id) AND sales.sales_s_id IN (tags.tag_s_id) )  AND sales.sales_s_id=tags.tag_s_id AND ( (sales.sl_lat BETWEEN ${lat1} AND ${lat2}) AND (sales.sl_lng BETWEEN ${lng2} AND ${lng1})   ) ;
 					
 	`;
 
 	console.log(queryString);
 
+	////console.log("sales");
 	conn.query(queryString, (err,results,fields)=>{
 		return res.status(200).json({results: results, msg: 'success'})
 	})
@@ -631,7 +622,7 @@ router.get('/:s_id', (req, res, next) => {
 		if (results.length !== 1) {
 			return res.status(404).json({msg:'Unknown item'})
 		}
-		console.log(results)
+		////console.log(results)
 		return res.status(200).json({results: results, msg: 'success'})
 	})
 	conn.end()
@@ -723,7 +714,13 @@ router.get('/detail/:s_id', (req, res, next) => {
 	app_detail.*,
 
 	member.m_name,
-	member_contact.*
+	member_contact.*,
+
+	(
+		SELECT  GROUP_CONCAT( sf_original_nm SEPARATOR ',') AS sf_original_nm
+						FROM tbl_sales_file tsf
+						WHERE status=1 AND s_id=tsf.s_id
+		) sf_original_nm
 
 	FROM 
 		tbl_sales sales, 
@@ -738,6 +735,7 @@ router.get('/detail/:s_id', (req, res, next) => {
 	 member.m_id=sales.m_id AND
 	 member.m_id=member_contact.m_id `;
 
+	console.log(salesQuery);
 	
 	conn.query(salesQuery, (err,results,fields)=>{
 		
@@ -746,8 +744,9 @@ router.get('/detail/:s_id', (req, res, next) => {
 		}
 		if (results.length <= 0) {
 
-			const fileQuery = `SELECT sf_original_nm SEPARATOR as s_files FROM tbl_sales_file  WHERE s_id=${s_id}`;
-			conn.query(fileQuery, (err,fileResult,fields)=>{
+			
+			//const fileQuery = `SELECT sf_original_nm SEPARATOR as s_files FROM tbl_sales_file  WHERE s_id=${s_id}`;
+			//conn.query(fileQuery, (err,fileResult,fields)=>{
 				
 				if(err){
 					return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
@@ -762,7 +761,7 @@ router.get('/detail/:s_id', (req, res, next) => {
 						
 				}
 			
-			})
+			//})
 
 			return res.status(404).json({message:'데이터가 없습니다.'})
 		}else {
@@ -777,7 +776,7 @@ router.get('/detail/:s_id', (req, res, next) => {
 
 // 이미지 파일 받기
 router.get('/imgs/:s_id', (req, res, next) => {
-	console.log("imgs");
+	////console.log("imgs");
 
 	
 	const s_id = req.params.s_id
@@ -798,13 +797,13 @@ router.get('/imgs/:s_id', (req, res, next) => {
 
 
 	conn.query(query, (err,results,fields)=>{
-		console.log(results);
-			//console.log(results[index]);
+		//console.log(results);
+			////console.log(results[index]);
 		if(err){
 			return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 		}
 		else {
-			console.log(results);
+			//console.log(results);
 			if (results.length <= 0) {
 				return res.status(404).json({message:'데이터가 없습니다.'})
 			}else {
@@ -822,7 +821,7 @@ router.get('/imgs/:s_id', (req, res, next) => {
 // 옵션 받기
 router.get('/opt/:s_id', (req, res, next) => {
 	const s_id = req.params.s_id
-
+	//console.log(s_id);
 	if(!s_id){
 		return res.status(400).json({msg:'Invaild ID'})
 	}
@@ -836,14 +835,21 @@ router.get('/opt/:s_id', (req, res, next) => {
 
 	conn.connect()
 
-	const query =`SELECT code.string AS string, code.icon_url AS icon_url, rtso.* FROM r_tbl_sales_options rtso, tbl_code code WHERE rtso.s_id=${s_id} AND rtso.code=code.string`;
+	const query =`SELECT 
+	(SELECT string FROM tbl_code WHERE code=rtso.code ) AS string,
+	(SELECT icon_url FROM tbl_code WHERE code=rtso.code ) AS icon_url,	
+	rtso.* 
+	
+	FROM r_tbl_sales_options rtso 
+
+	WHERE rtso.s_id=${s_id} `;
 	if(!s_id){
 		return res.status(400).json({msg:'Invaild ID'})
 	}
 
 	conn.query(query, (err,results,fields)=>{
-		//console.log(results);
-			//console.log(results[index]);
+		////console.log(results);
+			////console.log(results[index]);
 			if(err){
 				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 			}
@@ -883,8 +889,8 @@ router.get('/tags/:s_id', (req, res, next) => {
 	}
 
 	conn.query(query, (err,results,fields)=>{
-		//console.log(results);
-			//console.log(results[index]);
+		////console.log(results);
+			////console.log(results[index]);
 			if(err){
 				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 			}
@@ -926,8 +932,8 @@ router.get('/avl_time/:s_id', (req, res, next) => {
 	}
 
 	conn.query(query, (err,results,fields)=>{
-		//console.log(results);
-			//console.log(results[index]);
+		////console.log(results);
+			////console.log(results[index]);
 			if(err){
 				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 			}
@@ -1003,8 +1009,8 @@ router.get('/like/:s_id/:m_id', (req, res, next) => {
 	conn.connect()
 	const query =`SELECT COUNT(*) cnt FROM tbl_member_like_sale WHERE s_id=${s_id} AND m_id=${m_id} `;
 	conn.query(query, (err,results,fields)=>{
-		//console.log(results);
-			//console.log(results[index]);
+		////console.log(results);
+			////console.log(results[index]);
 			if(err){
 				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 			}
@@ -1012,7 +1018,7 @@ router.get('/like/:s_id/:m_id', (req, res, next) => {
 				if (results.length <= 0) {
 					return res.status(404).json({message:'데이터가 없습니다.'})
 				}else {
-					console.log(results);
+					//console.log(results);
 					return res.status(200).json({data: results, msg: 'success'})
 				}
 					
@@ -1024,7 +1030,7 @@ router.get('/like/:s_id/:m_id', (req, res, next) => {
 router.post('/like', (req, res, next) => {
 	const s_id = req.body.s_id
 	const m_id = req.body.m_id
-	console.log(req.body);
+	//console.log(req.body);
 
 	
 	if(!s_id){
@@ -1041,10 +1047,10 @@ router.post('/like', (req, res, next) => {
 	conn.connect()
 
 	const query =`INSERT INTO tbl_member_like_sale SET m_id=${m_id}, s_id=${s_id}, mod_date=now() `;
-		console.log(query);
+		//console.log(query);
 	conn.query(query, (err,results,fields)=>{
-		//console.log(results);
-			//console.log(results[index]);
+		////console.log(results);
+			////console.log(results[index]);
 			if(err){
 				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 			}
@@ -1065,8 +1071,8 @@ router.post('/like', (req, res, next) => {
 router.delete('/like', (req, res, next) => {
 	const s_id = req.body.s_id
 	const m_id = req.body.m_id
-	console.log("좋아요 삭제=============================================");
-	console.log(req.body);
+	//console.log("좋아요 삭제=============================================");
+	//console.log(req.body);
 
 	
 	if(!s_id){
@@ -1084,8 +1090,8 @@ router.delete('/like', (req, res, next) => {
 
 	const query =`DELETE FROM tbl_member_like_sale WHERE m_id=${m_id} AND s_id=${s_id} `;
 	conn.query(query, (err,results,fields)=>{
-		//console.log(results);
-			//console.log(results[index]);
+		////console.log(results);
+			////console.log(results[index]);
 			if(err){
 				return res.status(400).json({err:err.message, msg:'DB Error... check [err]'})
 			}
@@ -1105,7 +1111,7 @@ router.delete('/like', (req, res, next) => {
 
 router.post('/filter',afterLogin, (req,res, next)=>{
 
-	console.log(req.body);
+	//console.log(req.body);
 	
 	const params = req.body;
 
